@@ -8,6 +8,10 @@ class Settings(BaseSettings):
     
     QDRANT_HOST: str = "localhost"
     QDRANT_PORT: int = 6333
+    
+    # RAG Settings
+    CHUNK_SIZE: int = 512
+    CHUNK_OVERLAP: int = 50
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
