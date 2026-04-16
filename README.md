@@ -28,7 +28,7 @@ python scripts/change_role.py popeye Admin
 The API provides a smart, unified interface for document operations.
 
 ### Smart Identifiers
-Endpoints like `GET /documents/{identifier}` and `DELETE /documents/{identifier}` are designed for maximum efficiency:
+Endpoints like `GET /documents/{identifier}`, `DELETE /documents/{identifier}`, and `POST /rag/index-document/{identifier}` are designed for maximum efficiency:
 - **UUID Support**: If a valid UUID is provided, the system performs a precise lookup by ID.
 - **Partial Name Matching**: If a string is provided (e.g., `My bio`), the system performs a case-insensitive partial match against document titles. You don't need to type the full filename or extension.
 - **Tie-Breaking**: If multiple documents match a partial name, the system automatically targets the **most recently uploaded** one.
