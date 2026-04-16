@@ -1,6 +1,6 @@
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
-from app.api import auth, users, roles
+from app.api import auth, users, documents
 from app.core.logger import setup_logger
 
 logger = setup_logger("nimap_main")
@@ -21,7 +21,7 @@ async def global_exception_handler(request: Request, exc: Exception):
 
 app.include_router(auth.router)
 app.include_router(users.router)
-app.include_router(roles.router)
+app.include_router(documents.router)
 
 @app.get("/health", tags=["Health"])
 def health_check():

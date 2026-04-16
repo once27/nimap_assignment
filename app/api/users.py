@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List
+from uuid import UUID
 from pydantic import BaseModel
 
 from app.db.session import get_db
@@ -9,20 +10,20 @@ from app.models.role import Role
 from app.api.deps import require_role, get_current_user
 from app.schemas.role import RoleResponse
 
-router = APIRouter(prefix="/users", tags=["Users"])
+router = APIRouter(prefix="/users", tags=["Users & Roles"])
 
-class ChangeRoleRequest(BaseModel):
+class AssignRoleRequest(BaseModel):
     username: str
     role_name: str
 
-@router.post("/change-role")
-def change_user_role(
-    request: ChangeRoleRequest, 
+@router.post("/assign-role")
+def assign_user_role(
+    request: AssignRoleRequest, 
     current_user: User = Depends(require_role("Admin")), 
     db: Session = Depends(get_db)
 ):
     """
-    Promote or change a user's role. Strictly requires Admin Bearer token.
+    Assign a role to a user. Strictly requires Admin Bearer token.
     """
     target_user = db.query(User).filter(User.username == request.username).first()
     if not target_user:
@@ -37,9 +38,9 @@ def change_user_role(
     return {"status": "success", "message": f"User {request.username} is now {request.role_name}"}
 
 @router.get("/me/roles", response_model=List[RoleResponse])
-def get_my_roles(current_user: User = Depends(get_current_user)):
+def get_my_role(current_user: User = Depends(get_current_user)):
     """
-    Get roles assigned to the current user.
+    Get role assigned to the current user.
     """
     return current_user.roles
 
@@ -53,3 +54,13 @@ def get_my_permissions(current_user: User = Depends(get_current_user)):
         for perm in role.permissions:
             permissions.add(perm)
     return list(permissions)
+
+@router.get("/roles", response_model=List[RoleResponse])
+def list_roles(
+    current_user=Depends(require_role("Admin")),
+    db: Session = Depends(get_db)
+):
+    """
+    Get all system roles. Requires Admin permissions.
+    """
+    return db.query(Role).all()
