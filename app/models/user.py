@@ -17,3 +17,4 @@ class User(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
 
     roles = relationship("Role", secondary="user_roles", backref="users")
+    documents = relationship("Document", back_populates="owner")
