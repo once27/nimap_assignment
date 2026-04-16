@@ -1,5 +1,9 @@
-from fastapi import FastAPI
-from app.api import auth
+from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
+from app.api import auth, users
+from app.core.logger import setup_logger
+
+logger = setup_logger("nimap_main")
 
 app = FastAPI(
     title="Nimap Assignment",
@@ -7,7 +11,16 @@ app = FastAPI(
     version="1.0.0",
 )
 
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    logger.exception(f"Unhandled system crash at {request.url.path}: {str(exc)}")
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "An internal server error occurred. Please check logs or contact support."}
+    )
+
 app.include_router(auth.router)
+app.include_router(users.router)
 
 @app.get("/health", tags=["Health"])
 def health_check():

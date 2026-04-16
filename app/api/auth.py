@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from app.db.session import get_db
 from app.models.user import User
+from app.models.role import Role
 from app.schemas.auth import RegisterRequest, LoginRequest, Token
 from app.schemas.user import UserResponse
 from app.core.security import get_password_hash, verify_password, create_access_token
@@ -20,6 +21,11 @@ def register(request: RegisterRequest, db: Session = Depends(get_db)):
     
     hashed_password = get_password_hash(request.password)
     new_user = User(username=request.username, email=request.email, hashed_password=hashed_password)
+    
+    client_role = db.query(Role).filter(Role.name == "Client").first()
+    if client_role:
+        new_user.roles = [client_role]
+        
     db.add(new_user)
     db.commit()
     db.refresh(new_user)
