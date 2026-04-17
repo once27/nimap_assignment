@@ -12,7 +12,7 @@ class SearchService:
     def search(
         self, 
         query: str, 
-        owner_id: UUID
+        user: any # Using any to avoid circular import with User model here, but it's a User object
     ) -> List[dict]:
         """
         Two-stage search: 
@@ -28,12 +28,23 @@ class SearchService:
             query_vector = embedding_service.generate_embeddings([query])[0]
 
             # 2. Build security filters
-            must_filters = [
-                models.FieldCondition(
-                    key="owner_id",
-                    match=models.MatchValue(value=str(owner_id))
+            # Check if user is Client
+            is_client = any(role.name == "Client" for role in user.roles)
+            
+            if is_client and user.company_name:
+                # Client searches across the whole company
+                condition = models.FieldCondition(
+                    key="company_name",
+                    match=models.MatchValue(value=user.company_name)
                 )
-            ]
+            else:
+                # Others search only their own documents
+                condition = models.FieldCondition(
+                    key="owner_id",
+                    match=models.MatchValue(value=str(user.id))
+                )
+
+            must_filters = [condition]
 
             # 3. Step 1: Broad Retrieval (Spec: Top 20 Candidates)
             search_results = vector_db_service.client.search(

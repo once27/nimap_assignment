@@ -20,7 +20,12 @@ def register(request: RegisterRequest, db: Session = Depends(get_db)):
         raise HTTPException(status_code=400, detail="Username already taken")
     
     hashed_password = get_password_hash(request.password)
-    new_user = User(username=request.username, email=request.email, hashed_password=hashed_password)
+    new_user = User(
+        username=request.username, 
+        email=request.email, 
+        hashed_password=hashed_password,
+        company_name=request.company_name
+    )
     
     client_role = db.query(Role).filter(Role.name == "Client").first()
     if client_role:

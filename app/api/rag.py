@@ -203,12 +203,13 @@ async def search_documents(
     try:
         results = search_service.search(
             query=request.query,
-            owner_id=current_user.id
+            user=current_user
         )
         
-        message = None
         if not results:
             message = "No relevant information found in your documents for this query."
+        else:
+            message = f"Successfully retrieved {len(results)} relevant results."
 
         return {
             "query": request.query,
@@ -247,10 +248,15 @@ async def get_document_context(
     if not doc:
         raise HTTPException(status_code=404, detail=f"Document '{identifier}' not found")
         
-    # Security: check if user is admin or owner
+    # Security: check if user is admin, owner, or same-company client
     is_admin = any(role.name == "Admin" for role in current_user.roles)
+    is_client = any(role.name == "Client" for role in current_user.roles)
     
-    if not is_admin and doc.owner_id != current_user.id:
+    can_access = is_admin or doc.owner_id == current_user.id
+    if is_client and current_user.company_name == doc.company_name and current_user.company_name:
+        can_access = True
+    
+    if not can_access:
         raise HTTPException(status_code=403, detail="You do not have permission to view this document's context")
 
     # 2. Fetch chunks from Qdrant

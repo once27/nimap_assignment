@@ -88,8 +88,17 @@ def list_documents(
     db: Session = Depends(get_db)
 ):
     """
-    List all documents owned by the current user.
+    List all documents.
+    - Admin: All documents (TBD, currently owned)
+    - Client: All documents with matching company_name
+    - Other: Owned documents
     """
+    # Check if user has Client role
+    is_client = any(role.name == "Client" for role in current_user.roles)
+    
+    if is_client and current_user.company_name:
+        return db.query(Document).filter(Document.company_name == current_user.company_name).all()
+        
     return db.query(Document).filter(Document.owner_id == current_user.id).all()
 
 @router.get("/{identifier}", response_model=DocumentResponse)
@@ -102,22 +111,30 @@ def get_document(
     Retrieve metadata for a specific document by its ID (UUID) or Partial Title.
     If multiple match, returns the most recent one.
     """
+    is_client = any(role.name == "Client" for role in current_user.roles)
+    is_admin = any(role.name == "Admin" for role in current_user.roles)
+
     # 1. Try to parse as UUID
     try:
         doc_uuid = UUID(identifier)
-        return db.query(Document).filter(
-            Document.id == doc_uuid, 
-            Document.owner_id == current_user.id
-        ).first() or HTTPException(status_code=404, detail="Document not found")
+        query = db.query(Document).filter(Document.id == doc_uuid)
     except (ValueError, AttributeError):
         # 2. If not a UUID, search by partial title (case-insensitive)
-        doc = db.query(Document).filter(
-            Document.title.ilike(f"%{identifier}%"), 
-            Document.owner_id == current_user.id
-        ).order_by(Document.upload_date.desc()).first()
+        query = db.query(Document).filter(Document.title.ilike(f"%{identifier}%")).order_by(Document.upload_date.desc())
     
+    doc = query.first()
+
     if not doc:
         raise HTTPException(status_code=404, detail=f"Document '{identifier}' not found")
+
+    # Security: check if user is admin, owner, or same-company client
+    can_access = is_admin or doc.owner_id == current_user.id
+    if is_client and current_user.company_name == doc.company_name and current_user.company_name:
+        can_access = True
+    
+    if not can_access:
+         raise HTTPException(status_code=403, detail="You do not have permission to view this document")
+
     return doc
 
 @router.delete("/{identifier}", status_code=status.HTTP_204_NO_CONTENT)
@@ -175,12 +192,19 @@ def search_documents(
 ):
     """
     Search documents by metadata filters.
+    - Client: Only searches in their company knowledge base.
     """
-    query = db.query(Document).filter(Document.owner_id == current_user.id)
+    is_client = any(role.name == "Client" for role in current_user.roles)
+    
+    if is_client and current_user.company_name:
+        query = db.query(Document).filter(Document.company_name == current_user.company_name)
+    else:
+        query = db.query(Document).filter(Document.owner_id == current_user.id)
     
     if title:
         query = query.filter(Document.title.ilike(f"%{title}%"))
     if company_name:
+        # If client, they can only filter within their own company anyway
         query = query.filter(Document.company_name.ilike(f"%{company_name}%"))
     if document_type:
         query = query.filter(Document.document_type == document_type)
