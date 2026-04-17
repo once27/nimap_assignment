@@ -15,16 +15,19 @@ class SearchService:
         owner_id: UUID
     ) -> List[dict]:
         """
-        Search for the most relevant text chunks across all documents owned by the user.
+        Two-stage search: 
+        1. Bi-Encoder retrieval from Qdrant (Fast)
+        2. Cross-Encoder reranking (High Precision)
         """
-        # Minimum score threshold to filter out irrelevant matches (0.0 to 1.0 for Cosine)
-        MIN_SCORE_THRESHOLD = 0.6 
+        # Thresholds to ensure quality
+        BI_THRESHOLD = 0.3  # Broad retrieval gate
+        CROSS_THRESHOLD = -5.0 # Precision reranking gate 
 
         try:
-            # 1. Generate embedding for the query
+            # 1. Generate query embedding
             query_vector = embedding_service.generate_embeddings([query])[0]
 
-            # 2. Build filters
+            # 2. Build security filters
             must_filters = [
                 models.FieldCondition(
                     key="owner_id",
@@ -32,37 +35,52 @@ class SearchService:
                 )
             ]
 
-            # 3. Perform search in Qdrant
-            logger.info(f"--- SEMANTIC SEARCH DEBUG ---")
-            logger.info(f"Query: '{query}' | Target Owner: {owner_id}")
-            
+            # 3. Step 1: Broad Retrieval (Top 10)
             search_results = vector_db_service.client.search(
                 collection_name=vector_db_service.collection_name,
                 query_vector=query_vector,
                 query_filter=models.Filter(must=must_filters),
-                limit=5
+                limit=10 
             )
 
-            logger.info(f"Raw Search Results from Qdrant: {len(search_results)}")
-            
-            # 4. Format and Filter results
-            results = []
+            # 4. Filter junk and format candidates
+            candidates = []
             for res in search_results:
-                if res.score < MIN_SCORE_THRESHOLD:
-                    logger.info(f"Skipping result with low score: {res.score} (Threshold: {MIN_SCORE_THRESHOLD})")
+                if res.score < BI_THRESHOLD:
                     continue
-
-                logger.info(f"Match accepted: doc_id={res.payload.get('document_id')} | score={res.score}")
-                results.append({
+                
+                candidates.append({
                     "text": res.payload.get("text"),
                     "document_id": UUID(res.payload.get("document_id")),
                     "document_title": res.payload.get("title"),
                     "chunk_index": res.payload.get("chunk_index"),
-                    "score": res.score
+                    "bi_score": res.score
                 })
 
-            logger.info(f"Final Filtered Results Count: {len(results)}")
-            return results
+            if not candidates:
+                logger.info(f"No candidates passed Bi-Encoder threshold (0.5) for query: '{query}'")
+                return []
+
+            # 5. Step 2: Precision Reranking
+            candidate_texts = [c["text"] for c in candidates]
+            rerank_scores = embedding_service.rerank(query, candidate_texts)
+
+            # 6. Apply final quality filter and sort
+            results = []
+            for i, score in enumerate(rerank_scores):
+                if score < CROSS_THRESHOLD:
+                    continue  # Reranker says this is not relevant
+
+                candidates[i]["score"] = score
+                results.append(candidates[i])
+
+            # Sort by final score (High to Low)
+            results.sort(key=lambda x: x["score"], reverse=True)
+            
+            # Return Top 5
+            final_results = results[:5]
+            logger.info(f"Search complete for '{query}'. Found {len(final_results)} relevant matches.")
+            return final_results
 
         except Exception as e:
             logger.error(f"Semantic search failed: {e}")

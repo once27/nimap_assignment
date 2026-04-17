@@ -65,7 +65,14 @@ This endpoint prepares your documents for semantic search:
 - **System Cleanup**: Call `DELETE /rag/remove-document` with no ID to automatically purge any "orphaned" embeddings that belong to documents you've already deleted from your main list.
 
 ### 3. Semantic Search (`POST /rag/search`)
-Ask questions across all your indexed documents:
+Ask questions across all your indexed documents using a **Two-Stage Pipeline**:
 - **Query**: Send a JSON body with a `query` string (e.g., `{"query": "What is the return policy?"}`).
-- **Quality Bar**: The system uses a **score threshold**. If no relevant matches are found, it will return a friendly message: *"No relevant information found in your documents for this query."*
+- **Precision Reranking**: The system uses a **Bi-Encoder** for fast harvesting and a **Cross-Encoder** for high-precision reranking to ensure rank #1 is the best match.
+- **Quality Gate**: Uses a multi-stage threshold to hide irrelevant matches. If no valid match is found, it returns: *"No relevant information found in your documents for this query."*
+
+## Calibration & Troubleshooting
+If search results appear empty after infrastructure changes:
+1. **Reset Qdrant**: `docker compose exec app python scripts/reset_qdrant.py`
+2. **Reset Status**: `docker compose exec db psql -U postgres -d nimap_db -c "UPDATE documents SET status = 'pending';"`
+3. **Re-Index**: Run the `index-document` endpoint again in Swagger.
 
