@@ -88,6 +88,50 @@ class VectorDBService:
         except Exception as e:
             logger.error(f"Failed to delete points from Qdrant: {e}")
             return False
+    def get_document_chunks(self, document_id: str, owner_id: str):
+        """
+        Retrieve all chunks and metadata for a specific document, restricted by owner.
+        """
+        try:
+            # We use scroll to get all points instead of search (no vector needed)
+            scroll_results, _ = self.client.scroll(
+                collection_name=self.collection_name,
+                scroll_filter=models.Filter(
+                    must=[
+                        models.FieldCondition(
+                            key="document_id",
+                            match=models.MatchValue(value=document_id)
+                        ),
+                        models.FieldCondition(
+                            key="owner_id",
+                            match=models.MatchValue(value=owner_id)
+                        )
+                    ]
+                ),
+                limit=100,  # A document shouldn't have more than 100 chunks usually
+                with_payload=True,
+                with_vectors=False
+            )
+            
+            # Sort by chunk_index to preserve document order
+            chunks = []
+            for point in scroll_results:
+                chunks.append({
+                    "text": point.payload.get("text"),
+                    "chunk_index": point.payload.get("chunk_index"),
+                    "metadata": {
+                        "title": point.payload.get("title"),
+                        "document_type": point.payload.get("document_type"),
+                        "company_name": point.payload.get("company_name")
+                    }
+                })
+            
+            chunks.sort(key=lambda x: x["chunk_index"])
+            return chunks
+        except Exception as e:
+            logger.error(f"Failed to retrieve document chunks from Qdrant: {e}")
+            return []
+
     def cleanup_orphaned_embeddings(self, valid_document_ids: List[str], owner_id: str):
         """
         Remove all vectors for this user that don't belong to the provided list of valid IDs.
