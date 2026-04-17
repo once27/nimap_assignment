@@ -64,3 +64,8 @@ This endpoint prepares your documents for semantic search:
 - **Specific Removal**: Provide an `id` as a path parameter to remove embeddings for a specific document and reset its status to `pending`.
 - **System Cleanup**: Call `DELETE /rag/remove-document` with no ID to automatically purge any "orphaned" embeddings that belong to documents you've already deleted from your main list.
 
+### 3. Semantic Search (`POST /rag/search`)
+Ask questions across all your indexed documents:
+- **Query**: Send a JSON body with a `query` string (e.g., `{"query": "What is the return policy?"}`).
+- **Quality Bar**: The system uses a **score threshold**. If no relevant matches are found, it will return a friendly message: *"No relevant information found in your documents for this query."*
+
