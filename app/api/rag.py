@@ -185,3 +185,33 @@ async def remove_document_embeddings(
             "message": "Index cleanup complete. All orphaned embeddings for your account have been removed.",
             "valid_documents_tracked": len(valid_ids)
         }
+
+from app.schemas.rag import SearchRequest, SearchResponse
+from app.services.search_service import search_service
+
+@router.post("/search", response_model=SearchResponse)
+async def search_documents(
+    request: SearchRequest,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Simplified Semantic Search:
+    Takes only a 'query' and returns the top relevant text chunks.
+    """
+    try:
+        results = search_service.search(
+            query=request.query,
+            owner_id=current_user.id
+        )
+        
+        message = None
+        if not results:
+            message = "No relevant information found in your documents for this query."
+
+        return {
+            "query": request.query,
+            "results": results,
+            "message": message
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
