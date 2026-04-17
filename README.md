@@ -33,6 +33,11 @@ Once the containers are running, you must initialize the database:
 | **Qdrant Dashboard** | [http://localhost:6333/dashboard](http://localhost:6333/dashboard) | Vector search health check |
 | **PostgreSQL (Internal)**| `localhost:5433` | `postgres` / `postgres` |
 
+## Authentication
+- **Register**: `POST /auth/register` (Pass `username`, `email`, `password`, and optional `company_name`).
+- **Login**: `POST /auth/login` (Standard JWT authentication).
+- **Roles**: `Admin`, `Financial Analyst`, `Auditor`, `Client`.
+
 ## User Management
 By default, all new registrations are assigned the `Client` role. 
 To elevate an existing user from the terminal, activate your virtual environment and run the provided script:
@@ -46,11 +51,10 @@ python scripts/change_role.py popeye Admin
 ## Document Management
 The API provides a smart, unified interface for document operations.
 
-### Smart Identifiers
-Endpoints like `GET /documents/{identifier}` and `DELETE /documents/{identifier}` are designed for maximum efficiency:
-- **UUID Support**: If a valid UUID is provided, the system performs a precise lookup by ID.
-- **Partial Name Matching**: If a string is provided (e.g., `My bio`), the system performs a case-insensitive partial match against document titles. 
-- **Tie-Breaking**: If multiple documents match a partial name, the system automatically targets the **most recently uploaded** one.
+### Document Metadata & Search
+- **Upload**: `POST /documents/upload` - Accept `company_name` and `document_type` as form fields.
+- **List**: `GET /documents/` - Users see their own files. **Clients** see all files for their company.
+- **Metadata Search**: `GET /documents/search` - Filter repository by `title`, `company_name`, or `document_type`.
 
 ## RAG Pipeline
 The RAG pipeline manages the extraction, chunking, and vector storage of your documents.
@@ -65,10 +69,12 @@ This endpoint prepares your documents for semantic search:
 - **System Cleanup**: Call `DELETE /rag/remove-document` with no ID to automatically purge any "orphaned" embeddings that belong to documents you've already deleted from your main list.
 
 ### 3. Semantic Search (`POST /rag/search`)
-Ask questions across all your indexed documents using a **Two-Stage Pipeline**:
+Ask questions across the knowledge base using a **Two-Stage Pipeline**:
 - **Query**: Send a JSON body with a `query` string (e.g., `{"query": "What is the return policy?"}`).
-- **Precision Reranking**: The system uses a **Bi-Encoder** for fast harvesting and a **Cross-Encoder** for high-precision reranking to ensure rank #1 is the best match.
-- **Quality Gate**: Uses a multi-stage threshold to hide irrelevant matches. If no valid match is found, it returns: *"No relevant information found in your documents for this query."*
+- **Harvesting**: Fast retrieval of the **Top 20** candidates using Bi-Encoder.
+- **Precision Reranking**: Cross-Encoder (**ms-marco-MiniLM**) reranks results to find the most relevant answer.
+- **Final Results**: Delivers the **Top 5** most relevant results.
+- **Company Access**: Clients automatically search across their entire company's document base.
 
 ### 4. Document Context (`GET /rag/context/{identifier}`)
 Inspect the exact chunks indexed for a document:
