@@ -43,7 +43,8 @@ def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(securit
 
 def require_role(required_role: str):
     def role_checker(current_user: User = Depends(get_current_user)):
-        is_authorized = any(role.name == required_role for role in current_user.roles)
+        # Allow Admin to bypass all permission checks
+        is_authorized = any(role.name in ["Admin", required_role] for role in current_user.roles)
         if not is_authorized:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not enough permissions")
         return current_user

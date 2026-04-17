@@ -11,8 +11,27 @@ A robust document management API featuring full CRUD functionality, metadata sea
 - **Auth**: JWT with python-jose & passlib
 - **RAG**: sentence-transformers, Qdrant list, CrossEncoder (ms-marco-MiniLM-L-6-v2)
 
-## Setup instructions
-*(To be completed after Docker & App implementation)*
+## Docker Infrastructure
+The application is fully containerized for a production-ready setup including PostgreSQL (relational DB), Qdrant (vector DB), and PGAdmin (DB management).
+
+### Deployment
+To start the entire stack:
+```bash
+docker compose up -d --build
+```
+
+### Initial Setup
+Once the containers are running, you must initialize the database:
+1. **Run Migrations**: `alembic upgrade head`
+2. **Seed Roles**: `python app/seed.py`
+
+### Service Breakdown
+| Service | URL | Note |
+| :--- | :--- | :--- |
+| **FastAPI Docs** | [http://localhost:8000/docs](http://localhost:8000/docs) | Swagger UI for testing endpoints |
+| **PGAdmin** | [http://localhost:5050](http://localhost:5050) | `admin@nimap.com` / `admin` |
+| **Qdrant Dashboard** | [http://localhost:6333/dashboard](http://localhost:6333/dashboard) | Vector search health check |
+| **PostgreSQL (Internal)**| `localhost:5433` | `postgres` / `postgres` |
 
 ## User Management
 By default, all new registrations are assigned the `Client` role. 
