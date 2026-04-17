@@ -8,7 +8,7 @@ from app.models.role import Role
 
 roles = [
     {"name": "Admin", "permissions": ["*"]},
-    {"name": "Analyst", "permissions": ["upload_doc", "edit_doc", "search_doc"]},
+    {"name": "Financial Analyst", "permissions": ["upload_doc", "edit_doc", "search_doc"]},
     {"name": "Auditor", "permissions": ["view_doc", "search_doc"]},
     {"name": "Client", "permissions": ["view_doc", "search_doc"]}
 ]

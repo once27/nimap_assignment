@@ -35,12 +35,12 @@ class SearchService:
                 )
             ]
 
-            # 3. Step 1: Broad Retrieval (Top 10)
+            # 3. Step 1: Broad Retrieval (Spec: Top 20 Candidates)
             search_results = vector_db_service.client.search(
                 collection_name=vector_db_service.collection_name,
                 query_vector=query_vector,
                 query_filter=models.Filter(must=must_filters),
-                limit=10 
+                limit=20 
             )
 
             # 4. Filter junk and format candidates

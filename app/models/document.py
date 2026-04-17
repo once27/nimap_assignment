@@ -10,6 +10,7 @@ class Document(Base):
 
     id = Column(Uuid(as_uuid=True), primary_key=True, default=uuid.uuid4)
     title = Column(String, index=True, nullable=False)
+    company_name = Column(String, index=True, nullable=True) # e.g., Acme Corp
     document_type = Column(String, index=True, nullable=True) # e.g., invoice, report, contract
     file_path = Column(String, nullable=False)
     file_hash = Column(String, index=True, nullable=True)

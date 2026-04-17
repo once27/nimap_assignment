@@ -16,6 +16,8 @@ services:
         condition: service_started
     volumes:
       - ./uploads:/app/uploads
+      - ./alembic:/app/alembic
+      - ./app:/app/app
 
   db:
     image: postgres:15

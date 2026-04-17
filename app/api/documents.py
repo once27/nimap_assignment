@@ -23,6 +23,8 @@ import hashlib
 @router.post("/upload", response_model=DocumentResponse, status_code=status.HTTP_201_CREATED)
 async def upload_document(
     file: UploadFile = File(...),
+    company_name: Optional[str] = Form(None),
+    document_type: Optional[str] = Form(None),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -63,7 +65,9 @@ async def upload_document(
 
     # Create DB record
     db_document = Document(
-        title=file.filename,  # Use filename as title
+        title=file.filename,
+        company_name=company_name,
+        document_type=document_type,
         file_path=file_path,
         file_hash=file_hash,
         status="pending",
@@ -160,3 +164,25 @@ def delete_document(
     
     logger.info(f"Document '{identifier}' (matched: {doc.title}) deleted by {current_user.username}")
     return None
+
+@router.get("/search", response_model=List[DocumentResponse])
+def search_documents(
+    title: Optional[str] = None,
+    company_name: Optional[str] = None,
+    document_type: Optional[str] = None,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Search documents by metadata filters.
+    """
+    query = db.query(Document).filter(Document.owner_id == current_user.id)
+    
+    if title:
+        query = query.filter(Document.title.ilike(f"%{title}%"))
+    if company_name:
+        query = query.filter(Document.company_name.ilike(f"%{company_name}%"))
+    if document_type:
+        query = query.filter(Document.document_type == document_type)
+        
+    return query.all()
