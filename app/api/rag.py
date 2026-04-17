@@ -140,7 +140,7 @@ async def index_document(
 @router.delete("/remove-document/{id}", status_code=status.HTTP_200_OK)
 async def remove_document_embeddings(
     id: UUID = None,
-    current_user: User = Depends(require_role("Analyst")),
+    current_user: User = Depends(require_role("Financial Analyst")),
     db: Session = Depends(get_db)
 ):
     """
@@ -224,7 +224,7 @@ from app.schemas.rag import DocumentContextResponse
 @router.get("/context/{identifier}", response_model=DocumentContextResponse)
 async def get_document_context(
     identifier: str,
-    current_user: User = Depends(require_role(["Admin", "Analyst", "Auditor", "Client"])),
+    current_user: User = Depends(require_role(["Admin", "Financial Analyst", "Auditor", "Client"])),
     db: Session = Depends(get_db)
 ):
     """
