@@ -16,3 +16,18 @@ class SearchResponse(BaseModel):
     query: str
     results: List[SearchResult]
     message: Optional[str] = None
+
+class ChunkMetadata(BaseModel):
+    title: Optional[str] = None
+    document_type: Optional[str] = None
+    company_name: Optional[str] = None
+
+class ContextChunk(BaseModel):
+    text: str
+    chunk_index: int
+    metadata: ChunkMetadata
+
+class DocumentContextResponse(BaseModel):
+    document_id: UUID
+    chunks: List[ContextChunk]
+    total_chunks: int

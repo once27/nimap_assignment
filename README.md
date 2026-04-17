@@ -70,6 +70,11 @@ Ask questions across all your indexed documents using a **Two-Stage Pipeline**:
 - **Precision Reranking**: The system uses a **Bi-Encoder** for fast harvesting and a **Cross-Encoder** for high-precision reranking to ensure rank #1 is the best match.
 - **Quality Gate**: Uses a multi-stage threshold to hide irrelevant matches. If no valid match is found, it returns: *"No relevant information found in your documents for this query."*
 
+### 4. Document Context (`GET /rag/context/{identifier}`)
+Inspect the exact chunks indexed for a document:
+- **Smart Identifier**: Supports partial name (e.g., `my bio`) or UUID.
+- **Full Metadata**: Shows every chunk's text, index, company name, and document type.
+
 ## Calibration & Troubleshooting
 If search results appear empty after infrastructure changes:
 1. **Reset Qdrant**: `docker compose exec app python scripts/reset_qdrant.py`

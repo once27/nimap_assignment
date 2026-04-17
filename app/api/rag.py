@@ -48,7 +48,9 @@ async def process_document_indexing(document_id: UUID, db: Session):
             metadata = {
                 "title": doc.title,
                 "owner_id": str(doc.owner_id),
-                "file_path": doc.file_path
+                "file_path": doc.file_path,
+                "company_name": doc.company_name,
+                "document_type": doc.document_type
             }
             success = vector_db_service.upsert_chunks(
                 document_id=str(doc.id),
@@ -215,3 +217,47 @@ async def search_documents(
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+from app.schemas.rag import DocumentContextResponse
+
+@router.get("/context/{identifier}", response_model=DocumentContextResponse)
+async def get_document_context(
+    identifier: str,
+    current_user: User = Depends(require_role(["Admin", "Analyst", "Auditor", "Client"])),
+    db: Session = Depends(get_db)
+):
+    """
+    Retrieve all chunks for a specific document.
+    Access is restricted to the document owner or an Admin.
+    Matches by UUID or partial Title.
+    """
+    # 1. Verify document existence and ownership in SQL (Smart Identifier)
+    doc = None
+    try:
+        # Try UUID first
+        doc_uuid = UUID(identifier)
+        doc = db.query(Document).filter(Document.id == doc_uuid).first()
+    except (ValueError, AttributeError):
+        # Otherwise, search by partial title
+        doc = db.query(Document).filter(
+            Document.title.ilike(f"%{identifier}%"),
+            Document.owner_id == current_user.id
+        ).order_by(Document.upload_date.desc()).first()
+    
+    if not doc:
+        raise HTTPException(status_code=404, detail=f"Document '{identifier}' not found")
+        
+    # Security: check if user is admin or owner
+    is_admin = any(role.name == "Admin" for role in current_user.roles)
+    
+    if not is_admin and doc.owner_id != current_user.id:
+        raise HTTPException(status_code=403, detail="You do not have permission to view this document's context")
+
+    # 2. Fetch chunks from Qdrant
+    chunks = vector_db_service.get_document_chunks(str(doc.id), str(doc.owner_id))
+
+    return {
+        "document_id": doc.id,
+        "chunks": chunks,
+        "total_chunks": len(chunks)
+    }
