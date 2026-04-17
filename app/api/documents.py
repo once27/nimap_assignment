@@ -66,7 +66,7 @@ async def upload_document(
         title=file.filename,  # Use filename as title
         file_path=file_path,
         file_hash=file_hash,
-        status="ready",
+        status="pending",
         owner_id=current_user.id
     )
     

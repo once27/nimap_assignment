@@ -47,9 +47,20 @@ python scripts/change_role.py popeye Admin
 The API provides a smart, unified interface for document operations.
 
 ### Smart Identifiers
-Endpoints like `GET /documents/{identifier}`, `DELETE /documents/{identifier}`, and `POST /rag/index-document/{identifier}` are designed for maximum efficiency:
+Endpoints like `GET /documents/{identifier}` and `DELETE /documents/{identifier}` are designed for maximum efficiency:
 - **UUID Support**: If a valid UUID is provided, the system performs a precise lookup by ID.
-- **Partial Name Matching**: If a string is provided (e.g., `My bio`), the system performs a case-insensitive partial match against document titles. You don't need to type the full filename or extension.
+- **Partial Name Matching**: If a string is provided (e.g., `My bio`), the system performs a case-insensitive partial match against document titles. 
 - **Tie-Breaking**: If multiple documents match a partial name, the system automatically targets the **most recently uploaded** one.
-- **Ownership**: All operations are strictly restricted to the owner of the document.
+
+## RAG Pipeline
+The RAG pipeline manages the extraction, chunking, and vector storage of your documents.
+
+### 1. Indexing Documents (`POST /rag/index-document`)
+This endpoint prepares your documents for semantic search:
+- **Bulk Mode**: Call `POST /rag/index-document` with no parameters to automatically index all `pending` or `failed` documents in your account.
+- **Single Mode**: Provide an `identifier` query parameter (e.g., `?identifier=My bio`) to index a specific document by ID or name.
+
+### 2. Cleanup & Removal (`DELETE /rag/remove-document`)
+- **Specific Removal**: Provide an `id` as a path parameter to remove embeddings for a specific document and reset its status to `pending`.
+- **System Cleanup**: Call `DELETE /rag/remove-document` with no ID to automatically purge any "orphaned" embeddings that belong to documents you've already deleted from your main list.
 
