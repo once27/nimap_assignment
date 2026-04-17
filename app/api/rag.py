@@ -78,7 +78,7 @@ from uuid import UUID
 async def index_document(
     background_tasks: BackgroundTasks,
     identifier: str = None,
-    current_user: User = Depends(require_role("Analyst")),
+    current_user: User = Depends(require_role("Financial Analyst")),
     db: Session = Depends(get_db)
 ):
     """

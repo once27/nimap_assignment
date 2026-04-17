@@ -14,6 +14,8 @@ class DocumentUpdate(BaseModel):
 
 class DocumentResponse(DocumentBase):
     id: UUID
+    company_name: Optional[str] = None
+    document_type: Optional[str] = None
     file_path: str
     file_hash: Optional[str] = None
     status: str
