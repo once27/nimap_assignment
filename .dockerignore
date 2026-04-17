@@ -1,0 +1,10 @@
+venv/
+.git/
+__pycache__/
+*.sqlite3
+*.sqlite3.bak
+uploads/
+.env
+.pytest_cache/
+.coverage
+t/
